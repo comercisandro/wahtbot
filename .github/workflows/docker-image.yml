@@ -19,3 +19,8 @@ jobs:
 
     - name: Push the Docker image
       run: docker push comercisandro/cicd-whatbot
+
+    - name: Setup GitHub token
+      env:
+        GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      run: echo "GITHUB_TOKEN=${GH_TOKEN}" >> $GITHUB_ENV
