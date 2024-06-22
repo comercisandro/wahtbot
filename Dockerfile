@@ -16,8 +16,8 @@ RUN poetry config virtualenvs.create false && poetry install --no-interaction --
 # Copia el contenido del directorio actual en el contenedor en /app
 COPY . /app
 
-# Expone el puerto 5000 al mundo exterior
-EXPOSE 5000
+# Expone el puerto 8080 al mundo exterior
+EXPOSE 8080
 
 # Ejecuta la aplicación
 CMD ["flask", "run", "--host=0.0.0.0"]
