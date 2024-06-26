@@ -2,7 +2,9 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [ "master" ]
+    branches:
+      - "master"
+      - "development"  # Agrega esta línea para incluir la rama 'development'
 
 jobs:
   build:
