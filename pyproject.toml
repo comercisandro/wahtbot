@@ -9,6 +9,7 @@ readme = "README.md"
 python = "^3.9"
 twilio = "^9.2.0"
 flask = "^3.0.3"
+pandas = "^2.2.2"
 
 
 [build-system]
