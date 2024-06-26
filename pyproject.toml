@@ -7,9 +7,10 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.9"
+pandas = "^2.2.2"
 twilio = "^9.2.0"
 flask = "^3.0.3"
-pandas = "^2.2.2"
+
 
 
 [build-system]
