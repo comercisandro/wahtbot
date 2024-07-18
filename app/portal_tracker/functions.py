@@ -40,3 +40,27 @@ def handle_post_agregar_egreso(item_id):
         return jsonify({"error": str(e)}), 404
     except Exception as e:
         return jsonify({"error": "Ocurrió un error inesperado al agregar egreso."}), 500
+
+def handle_post_agregar_ingreso(item_id):
+    fecha = request.form.get('fecha')
+    tipo = request.form.get('tipo')
+    detalle = request.form.get('detalle')
+    monto = request.form.get('monto')
+
+    try:
+        df = obtener_csv_de_s3(BUCKET_NAME, f"{DETALLES_KEY}/{item_id}/ingresos.csv", delimiter=',')
+        new_entry = pd.DataFrame({'fecha': [fecha], 'tipo': [tipo], 'detalle': [detalle], 'monto': [monto]})
+        df = pd.concat([df, new_entry], ignore_index=True)
+
+        with StringIO() as output_csv:
+            df.to_csv(output_csv, index=False)
+            s3_client.put_object(Bucket=BUCKET_NAME, Key=f"{DETALLES_KEY}/{item_id}/ingresos.csv",
+                                 Body=output_csv.getvalue().encode('utf-8'))
+
+        return redirect(url_for('detalles.ver_detalles', item_id=item_id))
+
+    except FileNotFoundError as e:
+        return jsonify({"error": str(e)}), 404
+    except Exception as e:
+        return jsonify({"error": "Ocurrió un error inesperado al agregar ingreso."}), 500
+
