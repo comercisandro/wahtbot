@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Inventario</title>
+    <title>Detalles del Elemento</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
@@ -17,40 +17,26 @@
     </div>
     <div class="content">
         <div class="container mt-5">
-            <h1 class="mb-4">Inventario</h1>
+            <h1 class="mb-4">Detalles del Elemento</h1>
             <table class="table table-striped">
                 <thead class="thead-dark">
                     <tr>
-                        <th>ID</th>
-                        <th>Nombre</th>
-                        <th>Tipo de Activo</th>
-                        <th>Descripción</th>
-                        <th>Nomenclatura</th>
-                        <th>Detalles</th>
-                        <th>Documentación</th>
-                        <th>Estado</th>
+                        {% for col in detalles[0].keys() %}
+                        <th>{{ col }}</th>
+                        {% endfor %}
                     </tr>
                 </thead>
                 <tbody>
-                    {% for item in data %}
+                    {% for row in detalles %}
                     <tr>
-                        <td>{{ item.id }}</td>
-                        <td>{{ item.nombre }}</td>
-                        <td>{{ item['tipo de activo'] }}</td>
-                        <td>{{ item.descripcion }}</td>
-                        <td>{{ item.nomenclatura }}</td>
-                        <td>
-                            <button class="btn btn-secondary" onclick="window.location.href='/detalles/{{ item.id }}'">Ver Detalles</button>
-                        </td>
-                        <td>
-                            <button class="btn btn-primary" onclick="window.open('{{ item.documentacion }}', '_blank')">Ver Documentación</button>
-                        </td>
-                        <td>{{ item.estado }}</td>
+                        {% for val in row.values() %}
+                        <td>{{ val }}</td>
+                        {% endfor %}
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
-            <a href="/download" class="btn btn-primary">Descargar Inventario</a>
+            <a href="/agregar_egreso/{{ item_id }}" class="btn btn-primary">Agregar Egreso</a>
         </div>
     </div>
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
