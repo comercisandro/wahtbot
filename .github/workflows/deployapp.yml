@@ -46,6 +46,10 @@ jobs:
         TASK_DEF_JSON=$(cat <<EOF
         {
           "family": "$FAMILY_NAME",
+          "networkMode": "awsvpc",
+          "requiresCompatibilities": ["FARGATE"],
+          "cpu": "256",
+          "memory": "512",
           "containerDefinitions": [
             {
               "name": "portal_tracker",
@@ -56,7 +60,7 @@ jobs:
               "portMappings": [
                 {
                   "containerPort": 80,
-                  "hostPort": 80
+                  "protocol": "tcp"
                 }
               ]
             }
@@ -76,7 +80,8 @@ jobs:
             --service-name $ECS_SERVICE_NAME \
             --task-definition $FAMILY_NAME \
             --desired-count 1 \
-            --launch-type EC2
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[subnet-12345678],securityGroups=[sg-12345678],assignPublicIp=ENABLED}"
         else
           echo "Service exists, updating..."
           aws ecs update-service --cluster $ECS_CLUSTER_NAME --service $ECS_SERVICE_NAME --force-new-deployment --task-definition $FAMILY_NAME
