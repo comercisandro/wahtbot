@@ -39,6 +39,7 @@ jobs:
         ECS_SERVICE_NAME: ${{ secrets.ECS_SERVICE_NAME }}
         ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         AWS_REGION: ${{ secrets.AWS_REGION }}
+        EXECUTION_ROLE_ARN: ${{ secrets.EXECUTION_ROLE_ARN }}
       run: |
         IMAGE_TAG=$(echo $GITHUB_SHA | cut -c1-7)
         FAMILY_NAME="${{ secrets.ECS_SERVICE_NAME }}-task-family"
@@ -50,6 +51,7 @@ jobs:
           "requiresCompatibilities": ["FARGATE"],
           "cpu": "256",
           "memory": "512",
+          "executionRoleArn": "${{ env.EXECUTION_ROLE_ARN }}",
           "containerDefinitions": [
             {
               "name": "portal_tracker",
