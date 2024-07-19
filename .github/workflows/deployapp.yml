@@ -41,7 +41,7 @@ jobs:
         AWS_REGION: ${{ secrets.AWS_REGION }}
       run: |
         IMAGE_TAG=$(echo $GITHUB_SHA | cut -c1-7)
-        FAMILY_NAME="my-task-family"
+        FAMILY_NAME="${{ secrets.ECS_SERVICE_NAME }}-task-family"
 
         TASK_DEF_JSON=$(cat <<EOF
         {
