@@ -2,11 +2,12 @@
 from flask import Flask
 from app.ping import ping
 from app.whatsapp import whatsapp_endpoint
-from app.portal_tracker import tracker_endpoint, inventario_endpoint, detalles_endpoint, agregar_egreso_endpoint
+from app.portal_tracker import *
 
 # Active endpoints noted as following:
 # (url_prefix, blueprint_object)
-ACTIVE_ENDPOINTS = (("/", ping), ("/", whatsapp_endpoint), ("/", tracker_endpoint), ("/", inventario_endpoint), ("/", detalles_endpoint), ("/", agregar_egreso_endpoint))
+ACTIVE_ENDPOINTS = (("/", ping), ("/", whatsapp_endpoint), ("/", tracker_endpoint), ("/", inventario_endpoint),
+                    ("/", detalles_endpoint), ("/", agregar_egreso_endpoint), ("/", agregar_ingreso_endpoint), ("/", listar_egresos_endpoint), ("/", listar_ingresos_endpoint))
 
 
 def create_app():

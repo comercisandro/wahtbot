@@ -1,0 +1,83 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches:
+      - "master"
+      - "development"  # Agrega esta línea para incluir la rama 'development'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Log in to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build, tag, and push Docker image to ECR
+      run: |
+        ECR_REPOSITORY=${{ secrets.ECR_REPOSITORY }}
+        IMAGE_TAG=$(echo $GITHUB_SHA | cut -c1-7)
+        docker build -t $ECR_REPOSITORY:$IMAGE_TAG .
+        docker tag $ECR_REPOSITORY:$IMAGE_TAG $ECR_REPOSITORY:latest
+        docker push $ECR_REPOSITORY:$IMAGE_TAG
+        docker push $ECR_REPOSITORY:latest
+
+    - name: Deploy to ECS
+      env:
+        ECS_CLUSTER_NAME: ${{ secrets.ECS_CLUSTER_NAME }}
+        ECS_SERVICE_NAME: ${{ secrets.ECS_SERVICE_NAME }}
+        ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+      run: |
+        IMAGE_TAG=$(echo $GITHUB_SHA | cut -c1-7)
+        FAMILY_NAME="my-task-family"
+
+        TASK_DEF_JSON=$(cat <<EOF
+        {
+          "family": "$FAMILY_NAME",
+          "containerDefinitions": [
+            {
+              "name": "my-container",
+              "image": "$ECR_REPOSITORY:$IMAGE_TAG",
+              "cpu": 256,
+              "memory": 512,
+              "essential": true,
+              "portMappings": [
+                {
+                  "containerPort": 80,
+                  "hostPort": 80
+                }
+              ]
+            }
+          ]
+        }
+        EOF
+        )
+        echo "$TASK_DEF_JSON" > task-def.json
+        aws ecs register-task-definition --cli-input-json file://task-def.json
+
+        SERVICE_EXISTS=$(aws ecs describe-services --cluster $ECS_CLUSTER_NAME --services $ECS_SERVICE_NAME --query 'services[0].status' --output text || echo "MISSING")
+
+        if [ "$SERVICE_EXISTS" = "MISSING" ]; then
+          echo "Service does not exist, creating..."
+          aws ecs create-service \
+            --cluster $ECS_CLUSTER_NAME \
+            --service-name $ECS_SERVICE_NAME \
+            --task-definition $FAMILY_NAME \
+            --desired-count 1 \
+            --launch-type EC2
+        else
+          echo "Service exists, updating..."
+          aws ecs update-service --cluster $ECS_CLUSTER_NAME --service $ECS_SERVICE_NAME --force-new-deployment --task-definition $FAMILY_NAME
+        fi

@@ -1,127 +1,104 @@
-from flask import jsonify, request, Blueprint, render_template, redirect, url_for
-import pandas as pd
+from flask import jsonify, request, Blueprint, render_template
 import boto3
-from io import StringIO
-import csv
+from app.portal_tracker.functions import obtener_csv_de_s3, handle_post_agregar_egreso, handle_post_agregar_ingreso
 
-# Especifica el nombre del bucket y el nombre del archivo
-bucket_name = 'iwima-tracker-app'
-inventario_key = 'inventario/data/inventario.csv'
-detalles_key = 'detalles'
-
-# Inicializa la sesión de boto3 y el cliente de S3
+# Inicializa el cliente de S3
 s3_client = boto3.client('s3')
+BUCKET_NAME = 'iwima-tracker-app'
+INVENTARIO_KEY = 'inventario/data/inventario.csv'
+DETALLES_KEY = 'detalles'
 
+
+# Definición de blueprints
 tracker_endpoint = Blueprint("tracker", __name__)
 inventario_endpoint = Blueprint("inventario", __name__)
 detalles_endpoint = Blueprint("detalles", __name__)
 agregar_egreso_endpoint = Blueprint("agregar_egreso", __name__)
+agregar_ingreso_endpoint = Blueprint('agregar_ingreso_endpoint', __name__)
+listar_egresos_endpoint = Blueprint("listar_egresos", __name__)
+listar_ingresos_endpoint = Blueprint('listar_ingresos_endpoint', __name__)
+
 
 
 @tracker_endpoint.route("/", methods=['GET'])
 def handler_tracker():
     return render_template('portal.html')
 
-
-# Ruta para mostrar el inventario
 @inventario_endpoint.route("/inventario", methods=['GET'])
 def inventario():
-
     try:
-        # Imprime el nombre del bucket y la clave del archivo para depuración
-        print(f"Bucket: {bucket_name}, Key: {inventario_key}")
-
-        # Descarga el archivo desde S3
-        s3_object = s3_client.get_object(Bucket=bucket_name, Key=inventario_key)
-
-        # Lee el archivo CSV en un DataFrame de pandas
-        df = pd.read_csv(StringIO(s3_object['Body'].read().decode('utf-8')), delimiter=';')
-
-        # Convierte el DataFrame a un diccionario
+        df = obtener_csv_de_s3(BUCKET_NAME, INVENTARIO_KEY)
         data = df.to_dict(orient='records')
-
-        # Renderiza la plantilla con los datos del inventario
         return render_template('inventario.html', data=data)
-
-    except s3_client.exceptions.NoSuchKey:
-        print("Error: El archivo especificado no existe en el bucket.")
-        return jsonify({"error": "El archivo especificado no existe en el bucket."}), 404
-
+    except FileNotFoundError as e:
+        return jsonify({"error": str(e)}), 404
     except Exception as e:
-        print(f"Error inesperado: {e}")
         return jsonify({"error": "Ocurrió un error inesperado."}), 500
 
+from flask import render_template, jsonify
+import pandas as pd
 
 @detalles_endpoint.route('/detalles/<item_id>', methods=['GET'])
 def ver_detalles(item_id):
     try:
-        print(f"Intentando obtener detalles para el elemento {item_id}")
-        s3_object = s3_client.get_object(Bucket=bucket_name, Key=f"{detalles_key}/{item_id}/egresos.csv")
-        df = pd.read_csv(StringIO(s3_object['Body'].read().decode('utf-8')), delimiter=',')
+        egresos = obtener_csv_de_s3(BUCKET_NAME, f"{DETALLES_KEY}/{item_id}/egresos.csv", delimiter=',')
+        ingresos = obtener_csv_de_s3(BUCKET_NAME, f"{DETALLES_KEY}/{item_id}/ingresos.csv", delimiter=',')
 
-        detalles = df.to_dict(orient='records') if not df.empty else []
+        # Calcular los totales de egresos e ingresos
+        total_egresos = egresos['monto'].sum()
+        total_ingresos = ingresos['monto'].sum()
 
-        return render_template('detalles.html', detalles=detalles, item_id=item_id)
+        # Obtener los últimos 10 registros de egresos e ingresos
+        ultimos_egresos = egresos.tail(10).to_dict(orient='records')
+        ultimos_ingresos = ingresos.tail(10).to_dict(orient='records')
 
-    except s3_client.exceptions.NoSuchKey:
-        print(f"Error: El archivo de detalles especificado no existe en el bucket para el item_id {item_id}.")
-        return jsonify({"error": f"El archivo de detalles especificado no existe en el bucket para el item_id {item_id}."}), 404
-
+        return render_template('detalles.html', total_egresos=total_egresos, total_ingresos=total_ingresos,
+                               ultimos_egresos=ultimos_egresos, ultimos_ingresos=ultimos_ingresos, item_id=item_id)
+    except FileNotFoundError as e:
+        return jsonify({"error": str(e)}), 404
     except Exception as e:
-        print(f"Error inesperado: {e}")
+        return jsonify({"error": "Ocurrió un error inesperado."}), 500
+
+@listar_egresos_endpoint.route('/listar_egresos_endpoint/<item_id>', methods=['GET'])
+def ver_detalles(item_id):
+    try:
+        df = obtener_csv_de_s3(BUCKET_NAME, f"{DETALLES_KEY}/{item_id}/egresos.csv", delimiter=',')
+        detalles = df.to_dict(orient='records') if not df.empty else []
+        return render_template('egresos.html', detalles=detalles, item_id=item_id)
+    except FileNotFoundError as e:
+        return jsonify({"error": str(e)}), 404
+    except Exception as e:
         return jsonify({"error": "Ocurrió un error inesperado."}), 500
 
 
 @agregar_egreso_endpoint.route('/agregar_egreso/<item_id>', methods=['GET', 'POST'])
 def agregar_egreso(item_id):
     if request.method == 'GET':
-        print(f"Renderizando formulario para agregar egreso al elemento {item_id}")
         return render_template('agregar_egreso.html', item_id=item_id)
 
-    elif request.method == 'POST':
-        print(f"Agregando nuevo egreso al elemento {item_id}")
-        fecha = request.form.get('fecha')
-        tipo = request.form.get('tipo')
-        detalle = request.form.get('detalle')
-        monto = request.form.get('monto')
+    if request.method == 'POST':
+        return handle_post_agregar_egreso(item_id)
 
-        try:
-            # Obtener el archivo CSV actual de detalles desde S3
-            print(f"Obteniendo archivo CSV actual de egresos para el elemento {item_id}")
-            s3_object = s3_client.get_object(Bucket=bucket_name, Key=f"{detalles_key}/{item_id}/egresos.csv")
-            current_csv_content = s3_object['Body'].read().decode('utf-8')
+    return jsonify({"error": "Método HTTP no soportado."}), 405
 
-            # Cargar el archivo CSV en un DataFrame de pandas
-            print("Cargando el archivo CSV en un DataFrame de pandas")
-            df = pd.read_csv(StringIO(current_csv_content), delimiter=',')
 
-            # Crear un nuevo DataFrame para el nuevo registro
-            print("Creando un nuevo DataFrame para el nuevo registro")
-            new_entry = pd.DataFrame({'fecha': [fecha], 'tipo': [tipo], 'detalle': [detalle], 'monto': [monto]})
+@listar_ingresos_endpoint.route('/listar_ingresos_endpoint/<item_id>', methods=['GET'])
+def ver_ingresos(item_id):
+    try:
+        df = obtener_csv_de_s3(BUCKET_NAME, f"{DETALLES_KEY}/{item_id}/ingresos.csv", delimiter=',')
+        detalles = df.to_dict(orient='records') if not df.empty else []
+        return render_template('ingresos.html', detalles=detalles, item_id=item_id)
+    except FileNotFoundError as e:
+        return jsonify({"error": str(e)}), 404
+    except Exception as e:
+        return jsonify({"error": "Ocurrió un error inesperado."}), 500
 
-            # Concatenar el nuevo registro con el DataFrame existente
-            print("Concatenando el nuevo registro con el DataFrame existente")
-            df = pd.concat([df, new_entry], ignore_index=True)
+@agregar_ingreso_endpoint.route('/agregar_ingreso/<item_id>', methods=['GET', 'POST'])
+def agregar_ingreso(item_id):
+    if request.method == 'GET':
+        return render_template('agregar_ingreso.html', item_id=item_id)
 
-            # Guardar el DataFrame actualizado en S3
-            print("Guardando el DataFrame actualizado en S3")
-            with StringIO() as output_csv:
-                df.to_csv(output_csv, index=False)
-                s3_client.put_object(Bucket=bucket_name, Key=f"{detalles_key}/{item_id}/egresos.csv",
-                                     Body=output_csv.getvalue().encode('utf-8'))
+    if request.method == 'POST':
+        return handle_post_agregar_ingreso(item_id)
 
-            # Redirigir de vuelta a la página de detalles del elemento
-            print(f"Redirigiendo de vuelta a la página de detalles del elemento {item_id}")
-            return redirect(url_for('detalles.ver_detalles', item_id=item_id))
-
-        except s3_client.exceptions.NoSuchKey:
-            print(f"Error: No se encontró el archivo de detalles para el item_id {item_id}.")
-            return jsonify({"error": "No se encontró el archivo de detalles."}), 404
-
-        except Exception as e:
-            print(f"Error inesperado al agregar egreso: {e}")
-            return jsonify({"error": "Ocurrió un error inesperado al agregar egreso."}), 500
-
-    else:
-        print("Método HTTP no soportado")
-        return jsonify({"error": "Método HTTP no soportado."}), 405
+    return jsonify({"error": "Método HTTP no soportado."}), 405
