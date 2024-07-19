@@ -2,6 +2,7 @@ from flask import jsonify, request, Blueprint
 from twilio.twiml.messaging_response import MessagingResponse
 import pandas as pd
 
+
 whatsapp_endpoint = Blueprint("whatsapp", __name__)
 
 @whatsapp_endpoint.route("/whatsapp", methods=['POST'])
