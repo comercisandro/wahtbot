@@ -20,14 +20,26 @@
             <h1 class="mb-4">Agregar Gasto Fijo</h1>
             <form method="POST">
                 <div class="form-group">
-                    <label for="fijo">Fijo</label>
-                    <input type="text" class="form-control" id="fijo" name="fijo" required>
+                    <label for="tipo">Tipo</label>
+                    <select class="form-control" id="tipo" name="tipo" required>
+                        <option value="" disabled selected>Seleccione el tipo</option>
+                        <option value="impuesto">Impuesto</option>
+                    </select>
                 </div>
                 <div class="form-group">
-                    <label for="monto">Monto</label>
-                    <input type="number" class="form-control" id="monto" name="monto" required>
+                    <label for="concepto">Concepto</label>
+                    <select class="form-control" id="concepto" name="concepto" required>
+                        <option value="" disabled selected>Seleccione el concepto</option>
+                        <option value="municipal">Municipal</option>
+                        <option value="luz">Luz</option>
+                        <option value="gas">Gas</option>
+                        <option value="rentas">Rentas</option>
+                        <option value="agua">Agua</option>
+                        <option value="expensas">Expensas</option>
+                        <option value="internet">Internet</option>
+                    </select>
                 </div>
-                <button type="submit" class="btn btn-primary">Guardar</button>
+                <button type="submit" class="btn btn-primary">Agregar</button>
             </form>
         </div>
     </div>

@@ -72,10 +72,8 @@ def handle_post_agregar_ingreso(item_id):
 
 
 def handle_post_agregar_gasto_fijo(item_id):
-    fecha = request.form.get('fecha')
     tipo = request.form.get('tipo')
-    concepto = request.form.get('detalle')
-    monto = request.form.get('monto')
+    concepto = request.form.get('concepto')
     pago = False  # Setear automáticamente en False
 
     try:
@@ -83,10 +81,10 @@ def handle_post_agregar_gasto_fijo(item_id):
         df = obtener_csv_de_s3(BUCKET_NAME, f"{DETALLES_KEY}/{item_id}/fijos.csv", delimiter=',')
     except FileNotFoundError:
         # Si no existe el archivo, crear un nuevo DataFrame
-        df = pd.DataFrame(columns=['fijo', 'monto', 'pago'])
+        df = pd.DataFrame(columns=['tipo', 'concepto', 'pago'])
 
     # Crear una nueva entrada con los datos proporcionados
-    new_entry = pd.DataFrame({'fecha': [fecha], 'tipo': [tipo], 'concepto': [concepto], 'monto': [monto], 'pago': [pago]})
+    new_entry = pd.DataFrame({'tipo': [tipo], 'concepto': [concepto], 'pago': [pago]})
     df = pd.concat([df, new_entry], ignore_index=True)
 
     try:
