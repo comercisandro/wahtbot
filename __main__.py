@@ -1,5 +1,5 @@
 """Run flask app."""
-from . import create_app
+from app import create_app
 
 app = create_app()
 

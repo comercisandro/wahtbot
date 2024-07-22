@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - "master"
-      - "development"  # Agrega esta línea para incluir la rama 'development'
+      - "development"
 
 jobs:
   build-and-deploy:
@@ -40,6 +40,8 @@ jobs:
         ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         AWS_REGION: ${{ secrets.AWS_REGION }}
         EXECUTION_ROLE_ARN: ${{ secrets.EXECUTION_ROLE_ARN }}
+        SUBNET_ID: ${{ secrets.SUBNET_ID }}
+        SECURITY_GROUP_ID: ${{ secrets.SECURITY_GROUP_ID }}
       run: |
         IMAGE_TAG=$(echo $GITHUB_SHA | cut -c1-7)
         FAMILY_NAME="${{ secrets.ECS_SERVICE_NAME }}-task-family"
@@ -83,7 +85,7 @@ jobs:
             --task-definition $FAMILY_NAME \
             --desired-count 1 \
             --launch-type FARGATE \
-            --network-configuration "awsvpcConfiguration={subnets=[subnet-12345678],securityGroups=[sg-12345678],assignPublicIp=ENABLED}"
+            --network-configuration "awsvpcConfiguration={subnets=[${{ secrets.SUBNET_ID }}],securityGroups=[${{ secrets.SECURITY_GROUP_ID }}],assignPublicIp=ENABLED}"
         else
           echo "Service exists, updating..."
           aws ecs update-service --cluster $ECS_CLUSTER_NAME --service $ECS_SERVICE_NAME --force-new-deployment --task-definition $FAMILY_NAME

@@ -62,11 +62,32 @@
                             {% endfor %}
                         </tbody>
                     </table>
+
+                    <h2>Últimos 10 Gastos Fijos</h2>
+                    <table class="table table-striped">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Monto</th>
+                                <th>Concepto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for gasto in ultimos_gastos_fijos %}
+                            <tr>
+                                <td>{{ gasto.fecha }}</td>
+                                <td>{{ gasto.monto }}</td>
+                                <td>{{ gasto.concepto }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
             <div class="mt-3">
                 <a href="/agregar_egreso/{{ item_id }}" class="btn btn-primary">Agregar Egreso</a>
                 <a href="/agregar_ingreso/{{ item_id }}" class="btn btn-success">Agregar Ingreso</a>
+                <a href="/agregar_gasto_fijo/{{ item_id }}" class="btn btn-warning">Agregar Gasto Fijo</a>
             </div>
         </div>
     </div>

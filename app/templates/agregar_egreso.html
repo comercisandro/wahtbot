@@ -25,11 +25,15 @@
                 </div>
                 <div class="form-group">
                     <label for="tipo">Tipo</label>
-                    <input type="text" class="form-control" id="tipo" name="tipo" required>
+                    <select class="form-control" id="tipo" name="tipo" required onchange="toggleConcepto()">
+                        <option value="Impuesto">Impuesto</option>
+                        <option value="Reparación">Reparación</option>
+                        <option value="Otro">Otro</option>
+                    </select>
                 </div>
-                <div class="form-group">
-                    <label for="detalle">Detalle</label>
-                    <input type="text" class="form-control" id="detalle" name="detalle" required>
+                <div class="form-group" id="concepto-group">
+                    <label for="concepto">Concepto</label>
+                    <input type="text" class="form-control" id="concepto" name="concepto" required>
                 </div>
                 <div class="form-group">
                     <label for="monto">Monto</label>
@@ -42,5 +46,31 @@
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        function toggleConcepto() {
+            var tipo = document.getElementById('tipo').value;
+            var conceptoGroup = document.getElementById('concepto-group');
+
+            if (tipo === 'Impuesto') {
+                conceptoGroup.innerHTML = `
+                    <label for="concepto">Concepto</label>
+                    <select class="form-control" id="concepto" name="concepto" required>
+                        <option value="Expensas">Expensas</option>
+                        <option value="Rentas">Rentas</option>
+                        <option value="Municipal">Municipal</option>
+                        <option value="Agua">Agua</option>
+                        <option value="Luz">Luz</option>
+                        <option value="Gas">Gas</option>
+                        <option value="Internet">Internet</option>
+                    </select>
+                `;
+            } else {
+                conceptoGroup.innerHTML = `
+                    <label for="concepto">Concepto</label>
+                    <input type="text" class="form-control" id="concepto" name="concepto" required>
+                `;
+            }
+        }
+    </script>
 </body>
 </html>

@@ -21,12 +21,17 @@ def obtener_csv_de_s3(bucket, key, delimiter=';'):
 def handle_post_agregar_egreso(item_id):
     fecha = request.form.get('fecha')
     tipo = request.form.get('tipo')
-    detalle = request.form.get('detalle')
+    concepto = request.form.get('concepto')  # Cambiado de 'detalle' a 'concepto'
     monto = request.form.get('monto')
 
     try:
         df = obtener_csv_de_s3(BUCKET_NAME, f"{DETALLES_KEY}/{item_id}/egresos.csv", delimiter=',')
-        new_entry = pd.DataFrame({'fecha': [fecha], 'tipo': [tipo], 'detalle': [detalle], 'monto': [monto]})
+
+        # Asegurarse de que 'concepto' no esté vacío si el 'tipo' es 'impuesto'
+        if tipo == 'impuesto' and not concepto:
+            return jsonify({"error": "El campo 'concepto' es obligatorio cuando el tipo es 'impuesto'."}), 400
+
+        new_entry = pd.DataFrame({'fecha': [fecha], 'tipo': [tipo], 'concepto': [concepto], 'monto': [monto]})
         df = pd.concat([df, new_entry], ignore_index=True)
 
         with StringIO() as output_csv:
@@ -41,15 +46,16 @@ def handle_post_agregar_egreso(item_id):
     except Exception as e:
         return jsonify({"error": "Ocurrió un error inesperado al agregar egreso."}), 500
 
+
 def handle_post_agregar_ingreso(item_id):
     fecha = request.form.get('fecha')
     tipo = request.form.get('tipo')
-    detalle = request.form.get('detalle')
+    concepto = request.form.get('detalle')
     monto = request.form.get('monto')
 
     try:
         df = obtener_csv_de_s3(BUCKET_NAME, f"{DETALLES_KEY}/{item_id}/ingresos.csv", delimiter=',')
-        new_entry = pd.DataFrame({'fecha': [fecha], 'tipo': [tipo], 'detalle': [detalle], 'monto': [monto]})
+        new_entry = pd.DataFrame({'fecha': [fecha], 'tipo': [tipo], 'concepto': [concepto], 'monto': [monto]})
         df = pd.concat([df, new_entry], ignore_index=True)
 
         with StringIO() as output_csv:
@@ -63,4 +69,35 @@ def handle_post_agregar_ingreso(item_id):
         return jsonify({"error": str(e)}), 404
     except Exception as e:
         return jsonify({"error": "Ocurrió un error inesperado al agregar ingreso."}), 500
+
+
+def handle_post_agregar_gasto_fijo(item_id):
+    fecha = request.form.get('fecha')
+    tipo = request.form.get('tipo')
+    concepto = request.form.get('detalle')
+    monto = request.form.get('monto')
+    pago = False  # Setear automáticamente en False
+
+    try:
+        # Intentar obtener el CSV existente de S3
+        df = obtener_csv_de_s3(BUCKET_NAME, f"{DETALLES_KEY}/{item_id}/fijos.csv", delimiter=',')
+    except FileNotFoundError:
+        # Si no existe el archivo, crear un nuevo DataFrame
+        df = pd.DataFrame(columns=['fijo', 'monto', 'pago'])
+
+    # Crear una nueva entrada con los datos proporcionados
+    new_entry = pd.DataFrame({'fecha': [fecha], 'tipo': [tipo], 'concepto': [concepto], 'monto': [monto], 'pago': [pago]})
+    df = pd.concat([df, new_entry], ignore_index=True)
+
+    try:
+        # Guardar el DataFrame actualizado en S3
+        with StringIO() as output_csv:
+            df.to_csv(output_csv, index=False)
+            s3_client.put_object(Bucket=BUCKET_NAME, Key=f"{DETALLES_KEY}/{item_id}/fijos.csv",
+                                 Body=output_csv.getvalue().encode('utf-8'))
+
+        return redirect(url_for('detalles.ver_detalles', item_id=item_id))
+
+    except Exception as e:
+        return jsonify({"error": "Ocurrió un error inesperado al agregar gasto fijo."}), 500
 
