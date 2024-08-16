@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, jsonify
 from app.portal_tracker.functions import *
 import logging
+import datetime
 
 logging.basicConfig(level=logging.INFO)
 
@@ -9,6 +10,10 @@ s3_client = boto3.client('s3')
 BUCKET_NAME = 'iwima-tracker-app'
 INVENTARIO_KEY = 'inventario/data/inventario.csv'
 DETALLES_KEY = 'detalles'
+
+now = datetime.date.today()
+year = now.year
+month = now.month
 
 
 # Definición de blueprints
@@ -41,12 +46,13 @@ def inventario():
 
 @detalles_endpoint.route('/detalles/<item_id>', methods=['GET'])
 def ver_detalles(item_id):
+
     try:
         df = obtener_csv_de_s3(BUCKET_NAME, INVENTARIO_KEY)
         nombre = df['nombre'][int(item_id)-1]
-        egresos = obtener_csv_de_s3(BUCKET_NAME, f"{DETALLES_KEY}/{item_id}/egresos.csv", delimiter=',')
-        ingresos = obtener_csv_de_s3(BUCKET_NAME, f"{DETALLES_KEY}/{item_id}/ingresos.csv", delimiter=',')
-        gastos_fijos = obtener_csv_de_s3(BUCKET_NAME, f"{DETALLES_KEY}/{item_id}/fijos.csv", delimiter=',')
+        egresos = obtener_csv_de_s3(BUCKET_NAME, f"{DETALLES_KEY}/{item_id}/{year}/{month}/egresos.csv", delimiter=',')
+        ingresos = obtener_csv_de_s3(BUCKET_NAME, f"{DETALLES_KEY}/{item_id}/{year}/{month}/ingresos.csv", delimiter=',')
+        gastos_fijos = obtener_csv_de_s3(BUCKET_NAME, f"{DETALLES_KEY}/{item_id}/{year}/{month}/fijos.csv", delimiter=',')
 
         # Calcular los totales de egresos e ingresos
         total_egresos = egresos['monto'].sum()
@@ -59,7 +65,7 @@ def ver_detalles(item_id):
 
         return render_template('detalles.html', total_egresos=total_egresos, total_ingresos=total_ingresos,
                                ultimos_egresos=ultimos_egresos, ultimos_ingresos=ultimos_ingresos,
-                               ultimos_gastos_fijos=ultimos_gastos_fijos, item_id=nombre)
+                               ultimos_gastos_fijos=ultimos_gastos_fijos, item_id=item_id, name=nombre)
     except FileNotFoundError as e:
         logging.error(f"Archivo no encontrado: {str(e)}")
         return jsonify({"error": str(e)}), 404
@@ -70,6 +76,8 @@ def ver_detalles(item_id):
 
 @listar_egresos_endpoint.route('/listar_egresos_endpoint/<item_id>', methods=['GET'])
 def ver_detalles(item_id):
+# Obtener la fecha actual
+
     try:
         df = obtener_csv_de_s3(BUCKET_NAME, f"{DETALLES_KEY}/{item_id}/egresos.csv", delimiter=',')
         detalles = df.to_dict(orient='records') if not df.empty else []

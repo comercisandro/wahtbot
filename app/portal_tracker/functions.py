@@ -2,11 +2,16 @@ import pandas as pd
 from io import StringIO
 import boto3
 from flask import jsonify, request, redirect, url_for
+import datetime
 # Inicializa el cliente de S3
 s3_client = boto3.client('s3')
 BUCKET_NAME = 'iwima-tracker-app'
 INVENTARIO_KEY = 'inventario/data/inventario.csv'
 DETALLES_KEY = 'detalles'
+
+now = datetime.date.today()
+year = now.year
+month = now.month
 
 def obtener_csv_de_s3(bucket, key, delimiter=';'):
     try:
@@ -25,7 +30,7 @@ def handle_post_agregar_egreso(item_id):
     monto = request.form.get('monto')
 
     try:
-        df = obtener_csv_de_s3(BUCKET_NAME, f"{DETALLES_KEY}/{item_id}/egresos.csv", delimiter=',')
+        df = obtener_csv_de_s3(BUCKET_NAME, f"{DETALLES_KEY}/{item_id}/{year}/{month}/egresos.csv", delimiter=',')
 
         # Asegurarse de que 'concepto' no esté vacío si el 'tipo' es 'impuesto'
         if tipo == 'impuesto' and not concepto:
@@ -36,7 +41,7 @@ def handle_post_agregar_egreso(item_id):
 
         with StringIO() as output_csv:
             df.to_csv(output_csv, index=False)
-            s3_client.put_object(Bucket=BUCKET_NAME, Key=f"{DETALLES_KEY}/{item_id}/egresos.csv",
+            s3_client.put_object(Bucket=BUCKET_NAME, Key=f"{DETALLES_KEY}/{item_id}/{year}/{month}/egresos.csv",
                                  Body=output_csv.getvalue().encode('utf-8'))
 
         return redirect(url_for('detalles.ver_detalles', item_id=item_id))
@@ -54,13 +59,13 @@ def handle_post_agregar_ingreso(item_id):
     monto = request.form.get('monto')
 
     try:
-        df = obtener_csv_de_s3(BUCKET_NAME, f"{DETALLES_KEY}/{item_id}/ingresos.csv", delimiter=',')
+        df = obtener_csv_de_s3(BUCKET_NAME, f"{DETALLES_KEY}/{item_id}/{year}/{month}/ingresos.csv", delimiter=',')
         new_entry = pd.DataFrame({'fecha': [fecha], 'tipo': [tipo], 'concepto': [concepto], 'monto': [monto]})
         df = pd.concat([df, new_entry], ignore_index=True)
 
         with StringIO() as output_csv:
             df.to_csv(output_csv, index=False)
-            s3_client.put_object(Bucket=BUCKET_NAME, Key=f"{DETALLES_KEY}/{item_id}/ingresos.csv",
+            s3_client.put_object(Bucket=BUCKET_NAME, Key=f"{DETALLES_KEY}/{item_id}/{year}/{month}/ingresos.csv",
                                  Body=output_csv.getvalue().encode('utf-8'))
 
         return redirect(url_for('detalles.ver_detalles', item_id=item_id))
@@ -78,7 +83,7 @@ def handle_post_agregar_gasto_fijo(item_id):
 
     try:
         # Intentar obtener el CSV existente de S3
-        df = obtener_csv_de_s3(BUCKET_NAME, f"{DETALLES_KEY}/{item_id}/fijos.csv", delimiter=',')
+        df = obtener_csv_de_s3(BUCKET_NAME, f"{DETALLES_KEY}/{item_id}/{year}/{month}/fijos.csv", delimiter=',')
     except FileNotFoundError:
         # Si no existe el archivo, crear un nuevo DataFrame
         df = pd.DataFrame(columns=['tipo', 'concepto', 'pago'])
@@ -91,7 +96,7 @@ def handle_post_agregar_gasto_fijo(item_id):
         # Guardar el DataFrame actualizado en S3
         with StringIO() as output_csv:
             df.to_csv(output_csv, index=False)
-            s3_client.put_object(Bucket=BUCKET_NAME, Key=f"{DETALLES_KEY}/{item_id}/fijos.csv",
+            s3_client.put_object(Bucket=BUCKET_NAME, Key=f"{DETALLES_KEY}/{item_id}/{year}/{month}/fijos.csv",
                                  Body=output_csv.getvalue().encode('utf-8'))
 
         return redirect(url_for('detalles.ver_detalles', item_id=item_id))
