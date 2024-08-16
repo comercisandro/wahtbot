@@ -71,7 +71,7 @@ def handler_whatsapp():
 
 
 # Leer el archivo CSV
-df = pd.read_csv('data/inmuebles.csv')
+# df = pd.read_csv('data/inmuebles.csv')
 
 # Diccionario para almacenar el estado de cada usuario
 user_states = {}
