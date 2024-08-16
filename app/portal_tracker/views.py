@@ -10,6 +10,7 @@ s3_client = boto3.client('s3')
 BUCKET_NAME = 'iwima-tracker-app'
 INVENTARIO_KEY = 'inventario/data/inventario.csv'
 DETALLES_KEY = 'detalles'
+INVERSIONES_KEY = 'inversiones'
 
 now = datetime.date.today()
 year = now.year
@@ -25,6 +26,8 @@ agregar_ingreso_endpoint = Blueprint('agregar_ingreso', __name__)
 listar_egresos_endpoint = Blueprint("listar_egresos", __name__)
 listar_ingresos_endpoint = Blueprint('listar_ingresos', __name__)
 cargar_gastos_fijos_endpoint = Blueprint("cargar_gastos_fijos", __name__)
+inversiones_endpoint = Blueprint('inversiones', __name__)
+agregar_inversion_endpoint = Blueprint('agregar_inversion', __name__)
 
 
 @tracker_endpoint.route("/", methods=['GET'])
@@ -130,3 +133,26 @@ def cargar_gastos_fijos(item_id):
     if request.method == 'POST':
         return handle_post_agregar_gasto_fijo(item_id)
 
+
+@inversiones_endpoint.route('/inversiones', methods=['GET'])
+def ver_inversiones():
+    try:
+        # Cargar datos de inversiones desde S3
+        df = obtener_csv_de_s3(BUCKET_NAME, f"{INVERSIONES_KEY}/inversiones.csv", delimiter=',')
+        detalles = df.to_dict(orient='records') if not df.empty else []
+        return render_template('inversiones.html', detalles=detalles)
+    except FileNotFoundError as e:
+        return jsonify({"error": str(e)}), 404
+    except Exception as e:
+        return jsonify({"error": "Ocurrió un error inesperado."}), 500
+
+
+@inversiones_endpoint.route('/agregar_inversion', methods=['GET', 'POST'])
+def agregar_inversion():
+    if request.method == 'GET':
+        return render_template('agregar_inversion.html')
+
+    if request.method == 'POST':
+        return handle_post_agregar_inversion()
+
+    return jsonify({"error": "Método HTTP no soportado."}), 405

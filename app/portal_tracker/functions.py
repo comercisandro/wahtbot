@@ -8,6 +8,7 @@ s3_client = boto3.client('s3')
 BUCKET_NAME = 'iwima-tracker-app'
 INVENTARIO_KEY = 'inventario/data/inventario.csv'
 DETALLES_KEY = 'detalles'
+INVERSIONES_KEY = 'inversiones'
 
 now = datetime.date.today()
 year = now.year
@@ -103,4 +104,29 @@ def handle_post_agregar_gasto_fijo(item_id):
 
     except Exception as e:
         return jsonify({"error": "Ocurrió un error inesperado al agregar gasto fijo."}), 500
+
+def handle_post_agregar_inversion():
+    nombre_activo = request.form.get('nombre_activo')
+    precio = request.form.get('precio')
+
+    try:
+        # Intentar obtener el CSV existente de S3
+        df = obtener_csv_de_s3(BUCKET_NAME, f"{INVERSIONES_KEY}/inversiones.csv", delimiter=',')
+
+        # Crear una nueva entrada con los datos proporcionados
+        new_entry = pd.DataFrame({'nombre_activo': [nombre_activo], 'precio': [precio]})
+        df = pd.concat([df, new_entry], ignore_index=True)
+
+        # Guardar el DataFrame actualizado en S3
+        with StringIO() as output_csv:
+            df.to_csv(output_csv, index=False)
+            s3_client.put_object(Bucket=BUCKET_NAME, Key=f"{INVERSIONES_KEY}/inversiones.csv",
+                                 Body=output_csv.getvalue().encode('utf-8'))
+
+        return redirect(url_for('inversiones.ver_inversiones'))
+
+    except FileNotFoundError as e:
+        return jsonify({"error": str(e)}), 404
+    except Exception as e:
+        return jsonify({"error": "Ocurrió un error inesperado al agregar la inversión."}), 500
 

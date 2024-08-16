@@ -8,7 +8,8 @@ from app.portal_tracker import *
 # (url_prefix, blueprint_object)
 ACTIVE_ENDPOINTS = (("/", ping), ("/", whatsapp_endpoint), ("/", tracker_endpoint), ("/", inventario_endpoint),
                     ("/", detalles_endpoint), ("/", agregar_egreso_endpoint), ("/", agregar_ingreso_endpoint),
-                    ("/", listar_egresos_endpoint), ("/", listar_ingresos_endpoint), ("/", cargar_gastos_fijos_endpoint))
+                    ("/", listar_egresos_endpoint), ("/", listar_ingresos_endpoint), ("/", cargar_gastos_fijos_endpoint),
+                    ("/", inversiones_endpoint), ("/", agregar_inversion_endpoint))
 
 
 def create_app():
