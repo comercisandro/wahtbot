@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, jsonify
 from app.portal_tracker.functions import *
 import logging
 import datetime
+from etl.run_analysis import run_all
 
 logging.basicConfig(level=logging.INFO)
 
@@ -28,6 +29,7 @@ listar_ingresos_endpoint = Blueprint('listar_ingresos', __name__)
 cargar_gastos_fijos_endpoint = Blueprint("cargar_gastos_fijos", __name__)
 inversiones_endpoint = Blueprint('inversiones', __name__)
 agregar_inversion_endpoint = Blueprint('agregar_inversion', __name__)
+run_analysis_endpoint = Blueprint('run_predictions', __name__)
 
 
 @tracker_endpoint.route("/", methods=['GET'])
@@ -156,3 +158,8 @@ def agregar_inversion():
         return handle_post_agregar_inversion()
 
     return jsonify({"error": "Método HTTP no soportado."}), 405
+
+@run_analysis_endpoint.route('/analizar_mercado', methods=['GET'])
+def run_predictions():
+    run_all()
+    return jsonify({"END": "Analisis completos"}), 200
